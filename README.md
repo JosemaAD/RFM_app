@@ -1,4 +1,4 @@
-# Análisis de Segmentación de Clientes
+# Análisis de Segmentación de Clientes RFM
 
 Este repositorio contiene un análisis de segmentación de clientes para el ecommerce, enfocado en los clientes suscritos a la newsletter.
 
