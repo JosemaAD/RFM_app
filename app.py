@@ -4,8 +4,9 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 import pyrebase
-from firebase_config import firebaseConfig
+# from firebase_config import firebaseConfig  # Eliminado, ahora se usa st.secrets
 
+firebaseConfig = st.secrets["firebaseConfig"]
 firebase = pyrebase.initialize_app(firebaseConfig)
 auth = firebase.auth()
 
