@@ -1,0 +1,10 @@
+credentials:
+  usernames:
+    user1:
+      email: user1@email.com
+      name: User 1
+      password: "$2b$12$8fDuMhBTwxAtjxxjlPXQF.nn2.KlXItnbRFfic7idl2/MgBHDajwe"
+cookie:
+  expiry_days: 7
+  key: amasadero_cookie
+  name: amasadero_auth
