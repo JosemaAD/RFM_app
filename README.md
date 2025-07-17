@@ -1,6 +1,6 @@
-# Análisis de Segmentación de Clientes de "El Amasadero"
+# Análisis de Segmentación de Clientes
 
-Este repositorio contiene un análisis de segmentación de clientes para el ecommerce "El Amasadero", enfocado en los clientes suscritos a la newsletter.
+Este repositorio contiene un análisis de segmentación de clientes para el ecommerce, enfocado en los clientes suscritos a la newsletter.
 
 ## 1. Objetivo
 
@@ -66,24 +66,3 @@ A continuación se muestra una tabla resumen con los 5 segmentos de clientes ide
     -   **Campaña de "Última Oportunidad":** Una última comunicación con una oferta muy atractiva.
     -   **Limpieza de Lista:** Si no reaccionan, reducir drásticamente la frecuencia de envíos para proteger la reputación del dominio.
 
-## 5. Ejecución del Análisis
-
-El análisis se ha realizado con el script de Python `analisis_clientes.py`. Para ejecutarlo:
-
-1.  **Asegurarse de tener el fichero de datos:** `Amasadero_audit_master - BBDD Final.csv` en el mismo directorio.
-2.  **Crear un entorno virtual:**
-    ```bash
-    python3 -m venv venv
-    ```
-3.  **Activar el entorno:**
-    ```bash
-    source venv/bin/activate
-    ```
-4.  **Instalar las dependencias:**
-    ```bash
-    pip install pandas scikit-learn numpy
-    ```
-5.  **Ejecutar el script:**
-    ```bash
-    python3 analisis_clientes.py
-    ``` 
