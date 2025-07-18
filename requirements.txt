@@ -13,3 +13,4 @@ pyrebase4
 plotly
 pycryptodome
 setuptools
+tabulate
