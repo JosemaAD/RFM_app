@@ -57,10 +57,34 @@ def reset_analysis():
     st.session_state.results = None
 
 def main_app():
-    # Elimino los estilos personalizados, vuelvo a los estilos originales de Streamlit
-    # st.markdown(''' ... ''', unsafe_allow_html=True)
     st.title("Disruptivos - RFM")
-    st.write("Sube un fichero CSV, mapea las columnas necesarias y obtén un análisis de segmentación RFM para tus clientes.")
+    st.markdown("""
+    ### Instrucciones para subir tu archivo CSV
+    1. El archivo debe tener al menos las siguientes columnas:
+       - **Correo electrónico**
+       - **Fecha de última compra**
+       - **Importe total**
+       - **Total de compras**
+       - **Suscrito a newsletter**
+    2. Puedes descargar un ejemplo de archivo CSV aquí:
+    """)
+    with open("ejemplo_clientes.csv", "rb") as f:
+        st.download_button(
+            label="📥 Descargar ejemplo de CSV",
+            data=f,
+            file_name="ejemplo_clientes.csv",
+            mime="text/csv"
+        )
+    st.markdown("""
+    3. Si tus columnas tienen otros nombres, podrás mapearlas en la app.
+    4. El formato de los datos debe ser similar a este:
+    
+    | Correo electrónico      | Fecha de última compra | Importe total | Total de compras | Suscrito a newsletter |
+    |------------------------|-----------------------|---------------|------------------|-----------------------|
+    | cliente1@email.com     | 12/03/2024            | 120,50        | 3                | Si                    |
+    | cliente2@email.com     | 05/01/2023            | 45,00         | 1                | No                    |
+    | cliente3@email.com     | 20/06/2024            | 300,00        | 7                | Si                    |
+    """)
     uploaded_file = st.file_uploader("1. Elige un fichero CSV", type="csv", on_change=reset_analysis)
     if uploaded_file is not None:
         try:
