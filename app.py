@@ -207,6 +207,29 @@ def main_app():
                             - Han realizado **{data['Frequency']:.1f} compras** (media).
                             - Han gastado un total de **{data['Monetary']:.2f} €** (media).
                         """)
+                        # Recomendaciones automáticas
+                        recomendaciones = []
+                        if data['Recency'] > 365:
+                            recomendaciones.append("Campaña de reactivación: muchos clientes llevan más de un año sin comprar. Usa emails personalizados y ofertas atractivas.")
+                        if data['Frequency'] < 2:
+                            recomendaciones.append("Campaña de cross-selling o up-selling: intenta aumentar la frecuencia de compra con productos complementarios o packs.")
+                        if data['Monetary'] < 50:
+                            recomendaciones.append("Campaña de ticket medio: incentiva el aumento del gasto con descuentos por compras superiores a cierto importe.")
+                        if not recomendaciones:
+                            recomendaciones.append("Fideliza a este segmento con contenido exclusivo y programas VIP.")
+                        st.info("\n".join(recomendaciones))
+
+                # Simulador de campañas
+                st.subheader("Simulador de impacto de campaña por segmento")
+                sim_segmento = st.selectbox("Selecciona un segmento para simular la campaña", segment_names_list)
+                sim_tipo = st.selectbox("Tipo de campaña", ["Descuento directo", "Email personalizado", "Cross-selling", "Última oportunidad"])
+                sim_conversion = st.slider("% estimado de conversión o reactivación", min_value=1, max_value=100, value=10)
+                sim_data = cluster_analysis.reset_index().iloc[segment_names_list.index(sim_segmento)]
+                n_clientes = int(sim_data['Count'])
+                clientes_impactados = int(n_clientes * sim_conversion / 100)
+                gasto_medio = sim_data['Monetary']
+                ingreso_estimado = clientes_impactados * gasto_medio
+                st.markdown(f"**Impacto estimado:** Si lanzas una campaña de tipo *{sim_tipo}* al segmento *{sim_segmento}* y logras un {sim_conversion}% de conversión, impactarás a **{clientes_impactados} clientes** y podrías generar aproximadamente **{ingreso_estimado:,.2f} €** en ingresos.")
 
 def login_form():
     st.title('Login')
