@@ -306,7 +306,7 @@ def mailchimp_oauth_flow():
                 st.session_state["mailchimp_token"] = token
                 st.success("¡Conexión con Mailchimp realizada con éxito!")
                 # Limpiar el parámetro code de la URL
-                st.experimental_set_query_params()
+                st.query_params.clear()
             except Exception as e:
                 st.error(f"Error al obtener el token de Mailchimp: {e}")
     else:
@@ -374,7 +374,7 @@ if 'results' not in st.session_state:
 mailchimp_oauth_flow()
 
 # Si el usuario está en medio del flujo OAuth (hay parámetro 'code' en la URL), no mostrar login
-query_params = st.query_params if hasattr(st, 'query_params') else st.experimental_get_query_params()
+query_params = st.query_params
 if "code" in query_params:
     st.warning("Estás completando la conexión con Mailchimp. Por favor, espera a que termine antes de iniciar sesión en la app.")
     st.stop()
