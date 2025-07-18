@@ -14,9 +14,9 @@ auth = firebase.auth()
 
 st.set_page_config(page_title="Disruptivos - RFM", layout="wide")
 
-MAILCHIMP_CLIENT_ID = "318515731707"
-MAILCHIMP_CLIENT_SECRET = "a163ec7c2f489974127531b280fa648b4f15f21d4f3797d2c8"
-MAILCHIMP_REDIRECT_URI = "https://rfmapp-88bqkopqyfker y4iuprbfs.streamlit.app/"  # Cambia esto por la URL real de tu app en Streamlit Cloud
+MAILCHIMP_CLIENT_ID = st.secrets["mailchimp"]["client_id"]
+MAILCHIMP_CLIENT_SECRET = st.secrets["mailchimp"]["client_secret"]
+MAILCHIMP_REDIRECT_URI = st.secrets["mailchimp"]["redirect_uri"]
 MAILCHIMP_AUTH_URL = "https://login.mailchimp.com/oauth2/authorize"
 MAILCHIMP_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"
 MAILCHIMP_METADATA_URL = "https://login.mailchimp.com/oauth2/metadata"
