@@ -373,7 +373,14 @@ if 'results' not in st.session_state:
 # Mostrar integración Mailchimp siempre, antes del login
 mailchimp_oauth_flow()
 
+# Si el usuario está en medio del flujo OAuth (hay parámetro 'code' en la URL), no mostrar login
+query_params = st.query_params if hasattr(st, 'query_params') else st.experimental_get_query_params()
+if "code" in query_params:
+    st.warning("Estás completando la conexión con Mailchimp. Por favor, espera a que termine antes de iniciar sesión en la app.")
+    st.stop()
+
 if 'user' not in st.session_state:
+    st.info("Para evitar errores, conecta primero tu cuenta de Mailchimp antes de iniciar sesión en la app.")
     menu = st.sidebar.selectbox('Acción', ['Login', 'Registro'])
     if menu == 'Login':
         login_form()
