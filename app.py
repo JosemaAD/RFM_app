@@ -309,6 +309,7 @@ def mailchimp_oauth_flow():
                 st.query_params.clear()
             except Exception as e:
                 st.error(f"Error al obtener el token de Mailchimp: {e}")
+                st.write(resp.text)  # Esto mostrará el mensaje de error detallado de Mailchimp
     else:
         st.success("Cuenta de Mailchimp conectada correctamente.")
         if st.button("Desconectar Mailchimp"):
