@@ -85,40 +85,82 @@ def main_app():
     | cliente2@email.com     | 05/01/2023            | 45,00         | 1                | No                    |
     | cliente3@email.com     | 20/06/2024            | 300,00        | 7                | Si                    |
     """)
-    uploaded_file = st.file_uploader("1. Elige un fichero CSV", type="csv", on_change=reset_analysis)
+    uploaded_file = st.file_uploader("1. Elige un fichero CSV o Excel", type=["csv", "xlsx"], on_change=reset_analysis)
     if uploaded_file is not None:
+        # Detectar tipo de archivo y leerlo
         try:
-            df = pd.read_csv(uploaded_file)
-            st.success("Fichero cargado. Por favor, mapea las columnas.")
-            st.header("2. Mapeo de Columnas")
-            st.write("Asigna las columnas de tu fichero a los campos requeridos por la aplicación.")
-            file_columns = df.columns.tolist()
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                email_col = st.selectbox("Columna de Correo Electrónico", file_columns, index=0)
-                date_col = st.selectbox("Columna de Fecha de Última Compra", file_columns, index=1)
-            with col2:
-                monetary_col = st.selectbox("Columna de Importe Total", file_columns, index=2)
-                frequency_col = st.selectbox("Columna de Total de Compras", file_columns, index=3)
-            with col3:
-                newsletter_col = st.selectbox("Columna de 'Suscrito a Newsletter'", file_columns, index=4)
-            if st.button("🚀 Realizar Análisis"):
-                df_mapped = df[[email_col, date_col, monetary_col, frequency_col, newsletter_col]].copy()
-                df_mapped.columns = ['Correo electrónico', 'Fecha de última compra', 'Importe total', 'Total de compras', 'Suscrito a newsletter']
-                df_mapped = df_mapped[df_mapped['Suscrito a newsletter'] == 'Si'].copy()
-                df_mapped['Fecha de última compra'] = pd.to_datetime(df_mapped['Fecha de última compra'], dayfirst=True, errors='coerce')
-                df_mapped.dropna(subset=['Fecha de última compra'], inplace=True)
-                for col in ['Importe total', 'Total de compras']:
-                    if df_mapped[col].dtype == 'object':
-                        df_mapped[col] = df_mapped[col].str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
-                    else:
-                        df_mapped[col] = df_mapped[col].astype(float)
-                cluster_analysis, rfm_data = perform_rfm_analysis(df_mapped)
-                st.session_state.results = (cluster_analysis, rfm_data)
-                st.session_state.analysis_done = True
-                st.rerun()
+            if uploaded_file.name.endswith(".csv"):
+                df = pd.read_csv(uploaded_file)
+                st.success("Archivo CSV cargado correctamente.")
+            elif uploaded_file.name.endswith(".xlsx"):
+                df = pd.read_excel(uploaded_file)
+                st.success("Archivo Excel cargado correctamente.")
+            else:
+                st.error("Formato de archivo no soportado. Sube un archivo .csv o .xlsx.")
+                st.stop()
         except Exception as e:
-            st.error(f"Ha ocurrido un error al procesar el fichero: {e}")
+            st.error(f"Error al leer el archivo: {e}")
+            st.stop()
+
+        # Validación previa de columnas necesarias
+        required_cols = [
+            "Correo electrónico",
+            "Fecha de última compra",
+            "Importe total",
+            "Total de compras",
+            "Suscrito a newsletter"
+        ]
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            st.error(f"Faltan las siguientes columnas obligatorias en tu archivo: {', '.join(missing_cols)}")
+            st.stop()
+
+        # Validación de datos vacíos
+        if df[required_cols].isnull().any().any():
+            st.warning("Hay celdas vacías en las columnas obligatorias. Por favor, revisa tu archivo antes de continuar.")
+            st.dataframe(df[df[required_cols].isnull().any(axis=1)])
+            st.stop()
+
+        # Validación de formato de fecha
+        try:
+            fechas = pd.to_datetime(df["Fecha de última compra"], dayfirst=True, errors="coerce")
+            if fechas.isnull().any():
+                st.warning("Algunas fechas no tienen el formato correcto (deben ser DD/MM/AAAA o similar). Revisa las filas resaltadas:")
+                st.dataframe(df[fechas.isnull()])
+                st.stop()
+        except Exception as e:
+            st.error(f"Error en el formato de la columna 'Fecha de última compra': {e}")
+            st.stop()
+
+        st.success("Archivo validado correctamente. Ahora puedes mapear las columnas y lanzar el análisis.")
+
+        st.header("2. Mapeo de Columnas")
+        st.write("Asigna las columnas de tu fichero a los campos requeridos por la aplicación.")
+        file_columns = df.columns.tolist()
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            email_col = st.selectbox("Columna de Correo Electrónico", file_columns, index=0)
+            date_col = st.selectbox("Columna de Fecha de Última Compra", file_columns, index=1)
+        with col2:
+            monetary_col = st.selectbox("Columna de Importe Total", file_columns, index=2)
+            frequency_col = st.selectbox("Columna de Total de Compras", file_columns, index=3)
+        with col3:
+            newsletter_col = st.selectbox("Columna de 'Suscrito a Newsletter'", file_columns, index=4)
+        if st.button("🚀 Realizar Análisis"):
+            df_mapped = df[[email_col, date_col, monetary_col, frequency_col, newsletter_col]].copy()
+            df_mapped.columns = ['Correo electrónico', 'Fecha de última compra', 'Importe total', 'Total de compras', 'Suscrito a newsletter']
+            df_mapped = df_mapped[df_mapped['Suscrito a newsletter'] == 'Si'].copy()
+            df_mapped['Fecha de última compra'] = pd.to_datetime(df_mapped['Fecha de última compra'], dayfirst=True, errors='coerce')
+            df_mapped.dropna(subset=['Fecha de última compra'], inplace=True)
+            for col in ['Importe total', 'Total de compras']:
+                if df_mapped[col].dtype == 'object':
+                    df_mapped[col] = df_mapped[col].str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
+                else:
+                    df_mapped[col] = df_mapped[col].astype(float)
+            cluster_analysis, rfm_data = perform_rfm_analysis(df_mapped)
+            st.session_state.results = (cluster_analysis, rfm_data)
+            st.session_state.analysis_done = True
+            st.rerun()
     if st.session_state.analysis_done:
         st.header("3. Resultados del Análisis")
         if st.session_state.results:
