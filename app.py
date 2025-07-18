@@ -4,6 +4,8 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 import pyrebase
+import requests
+import urllib.parse
 # from firebase_config import firebaseConfig  # Eliminado, ahora se usa st.secrets
 
 firebaseConfig = st.secrets["firebaseConfig"]
@@ -11,6 +13,13 @@ firebase = pyrebase.initialize_app(firebaseConfig)
 auth = firebase.auth()
 
 st.set_page_config(page_title="Disruptivos - RFM", layout="wide")
+
+MAILCHIMP_CLIENT_ID = "318515731707"
+MAILCHIMP_CLIENT_SECRET = "a163ec7c2f489974127531b280fa648b4f15f21d4f3797d2c8"
+MAILCHIMP_REDIRECT_URI = "https://rfmapp-88bqkopqyfker y4iuprbfs.streamlit.app/"  # Cambia esto por la URL real de tu app en Streamlit Cloud
+MAILCHIMP_AUTH_URL = "https://login.mailchimp.com/oauth2/authorize"
+MAILCHIMP_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"
+MAILCHIMP_METADATA_URL = "https://login.mailchimp.com/oauth2/metadata"
 
 def perform_rfm_analysis(df):
     if df.empty:
@@ -231,6 +240,9 @@ def main_app():
                 ingreso_estimado = clientes_impactados * gasto_medio
                 st.markdown(f"**Impacto estimado:** Si lanzas una campaña de tipo *{sim_tipo}* al segmento *{sim_segmento}* y logras un {sim_conversion}% de conversión, impactarás a **{clientes_impactados} clientes** y podrías generar aproximadamente **{ingreso_estimado:,.2f} €** en ingresos.")
 
+                # Exportar segmento a Mailchimp
+                mailchimp_export_segment(rfm_data, segment_names_list)
+
 def login_form():
     st.title('Login')
     email = st.text_input('Email')
@@ -263,6 +275,93 @@ def logout():
         st.session_state.pop('user', None)
         st.rerun()
 
+# --- OAuth Mailchimp ---
+def mailchimp_oauth_flow():
+    st.subheader("Integración con Mailchimp")
+    # Paso 1: Botón para iniciar OAuth
+    if "mailchimp_token" not in st.session_state:
+        params = {
+            "response_type": "code",
+            "client_id": MAILCHIMP_CLIENT_ID,
+            "redirect_uri": MAILCHIMP_REDIRECT_URI,
+        }
+        auth_url = f"{MAILCHIMP_AUTH_URL}?{urllib.parse.urlencode(params)}"
+        st.markdown(f"[🔗 Conectar con Mailchimp]({auth_url})", unsafe_allow_html=True)
+        # Paso 2: Detectar si hay ?code= en la URL
+        query_params = st.experimental_get_query_params()
+        if "code" in query_params:
+            code = query_params["code"][0]
+            # Paso 3: Intercambiar code por access token
+            data = {
+                "grant_type": "authorization_code",
+                "client_id": MAILCHIMP_CLIENT_ID,
+                "client_secret": MAILCHIMP_CLIENT_SECRET,
+                "redirect_uri": MAILCHIMP_REDIRECT_URI,
+                "code": code,
+            }
+            try:
+                resp = requests.post(MAILCHIMP_TOKEN_URL, data=data)
+                resp.raise_for_status()
+                token = resp.json()["access_token"]
+                st.session_state["mailchimp_token"] = token
+                st.success("¡Conexión con Mailchimp realizada con éxito!")
+                # Limpiar el parámetro code de la URL
+                st.experimental_set_query_params()
+            except Exception as e:
+                st.error(f"Error al obtener el token de Mailchimp: {e}")
+    else:
+        st.success("Cuenta de Mailchimp conectada correctamente.")
+        if st.button("Desconectar Mailchimp"):
+            del st.session_state["mailchimp_token"]
+            st.experimental_rerun()
+
+def mailchimp_export_segment(rfm_data, segment_names_list):
+    st.subheader("Exportar segmento a Mailchimp")
+    token = st.session_state.get("mailchimp_token")
+    if not token:
+        st.info("Conecta primero tu cuenta de Mailchimp para exportar segmentos.")
+        return
+    # 1. Obtener metadata para saber el data center
+    try:
+        meta_resp = requests.get(MAILCHIMP_METADATA_URL, headers={"Authorization": f"OAuth {token}"})
+        meta_resp.raise_for_status()
+        api_endpoint = meta_resp.json()["api_endpoint"]
+    except Exception as e:
+        st.error(f"No se pudo obtener el endpoint de Mailchimp: {e}")
+        return
+    # 2. Obtener listas (audiencias)
+    try:
+        lists_resp = requests.get(f"{api_endpoint}/3.0/lists", headers={"Authorization": f"OAuth {token}"})
+        lists_resp.raise_for_status()
+        lists = lists_resp.json()["lists"]
+        if not lists:
+            st.warning("No se encontraron listas en tu cuenta de Mailchimp. Crea una lista primero.")
+            return
+    except Exception as e:
+        st.error(f"No se pudieron obtener las listas de Mailchimp: {e}")
+        return
+    list_options = {l["name"]: l["id"] for l in lists}
+    # 3. Seleccionar segmento y lista
+    segmento = st.selectbox("Selecciona el segmento a exportar", segment_names_list, key="mailchimp_segment")
+    lista_nombre = st.selectbox("Selecciona la lista de Mailchimp", list(list_options.keys()), key="mailchimp_lista")
+    if st.button("Exportar emails a Mailchimp"):
+        # Filtrar emails del segmento
+        emails = rfm_data[rfm_data["Segmento"] == segmento].index.tolist()
+        if not emails:
+            st.warning("No hay emails en este segmento para exportar.")
+            return
+        # 4. Exportar emails a la lista
+        errors = 0
+        for email in emails:
+            data = {"email_address": email, "status": "subscribed"}
+            resp = requests.post(f"{api_endpoint}/3.0/lists/{list_options[lista_nombre]}/members", headers={"Authorization": f"OAuth {token}"}, json=data)
+            if resp.status_code not in (200, 204):
+                errors += 1
+        if errors == 0:
+            st.success(f"Todos los emails del segmento '{segmento}' han sido exportados a la lista '{lista_nombre}' de Mailchimp.")
+        else:
+            st.warning(f"{errors} emails no pudieron ser exportados (puede que ya existan o haya errores de formato).")
+
 # --- Lógica principal de la aplicación ---
 if 'analysis_done' not in st.session_state:
     st.session_state.analysis_done = False
@@ -278,4 +377,5 @@ if 'user' not in st.session_state:
 else:
     st.sidebar.write(f"Usuario: {st.session_state['user']['email']}")
     logout()
+    mailchimp_oauth_flow()
     main_app()
