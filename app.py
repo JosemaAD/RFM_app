@@ -288,7 +288,7 @@ def mailchimp_oauth_flow():
         auth_url = f"{MAILCHIMP_AUTH_URL}?{urllib.parse.urlencode(params)}"
         st.markdown(f"[🔗 Conectar con Mailchimp]({auth_url})", unsafe_allow_html=True)
         # Paso 2: Detectar si hay ?code= en la URL
-        query_params = st.experimental_get_query_params()
+        query_params = st.query_params
         if "code" in query_params:
             code = query_params["code"][0]
             # Paso 3: Intercambiar code por access token
