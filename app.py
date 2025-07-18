@@ -290,7 +290,9 @@ def mailchimp_oauth_flow():
         # Paso 2: Detectar si hay ?code= en la URL
         query_params = st.query_params
         if "code" in query_params:
-            code = query_params["code"][0]
+            code = query_params["code"]
+            if isinstance(code, list):
+                code = code[0]
             # Paso 3: Intercambiar code por access token
             data = {
                 "grant_type": "authorization_code",
@@ -305,7 +307,6 @@ def mailchimp_oauth_flow():
                 token = resp.json()["access_token"]
                 st.session_state["mailchimp_token"] = token
                 st.success("¡Conexión con Mailchimp realizada con éxito!")
-                # Limpiar el parámetro code de la URL
                 st.query_params.clear()
             except Exception as e:
                 st.error(f"Error al obtener el token de Mailchimp: {e}")
