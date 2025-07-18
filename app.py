@@ -343,7 +343,9 @@ def mailchimp_export_segment(rfm_data, segment_names_list):
     list_options = {l["name"]: l["id"] for l in lists}
     # 3. Seleccionar segmento y lista
     segmento = st.selectbox("Selecciona el segmento a exportar", segment_names_list, key="mailchimp_segment")
-    lista_nombre = st.selectbox("Selecciona la lista de Mailchimp", list(list_options.keys()), key="mailchimp_lista")
+    lista_nombre = st.selectbox("Selecciona la lista de Mailchimp (audiencia)", list(list_options.keys()), key="mailchimp_lista")
+    lista_id = list_options[lista_nombre]
+    st.info(f"Vas a importar el segmento '{segmento}' a la audiencia '{lista_nombre}' (ID: {lista_id}) de Mailchimp.")
     if st.button("Exportar emails a Mailchimp"):
         # Filtrar emails del segmento
         emails = rfm_data[rfm_data["Segmento"] == segmento].index.tolist()
@@ -354,11 +356,11 @@ def mailchimp_export_segment(rfm_data, segment_names_list):
         errors = 0
         for email in emails:
             data = {"email_address": email, "status": "subscribed"}
-            resp = requests.post(f"{api_endpoint}/3.0/lists/{list_options[lista_nombre]}/members", headers={"Authorization": f"OAuth {token}"}, json=data)
+            resp = requests.post(f"{api_endpoint}/3.0/lists/{lista_id}/members", headers={"Authorization": f"OAuth {token}"}, json=data)
             if resp.status_code not in (200, 204):
                 errors += 1
         if errors == 0:
-            st.success(f"Todos los emails del segmento '{segmento}' han sido exportados a la lista '{lista_nombre}' de Mailchimp.")
+            st.success(f"Todos los emails del segmento '{segmento}' han sido exportados a la audiencia '{lista_nombre}' de Mailchimp.")
         else:
             st.warning(f"{errors} emails no pudieron ser exportados (puede que ya existan o haya errores de formato).")
 
@@ -367,6 +369,9 @@ if 'analysis_done' not in st.session_state:
     st.session_state.analysis_done = False
 if 'results' not in st.session_state:
     st.session_state.results = None
+
+# Mostrar integración Mailchimp siempre, antes del login
+mailchimp_oauth_flow()
 
 if 'user' not in st.session_state:
     menu = st.sidebar.selectbox('Acción', ['Login', 'Registro'])
@@ -377,5 +382,4 @@ if 'user' not in st.session_state:
 else:
     st.sidebar.write(f"Usuario: {st.session_state['user']['email']}")
     logout()
-    mailchimp_oauth_flow()
     main_app()
